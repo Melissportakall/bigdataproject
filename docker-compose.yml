@@ -1,0 +1,68 @@
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    depends_on:
+      - kafka
+
+  spark-workspace:
+    build: ./spark-env
+    ports:
+      - "8888:8888" # Jupyter Notebook arayüzü
+      - "4040:4040" # Spark arayüzü (İşlemleri takip etmek için)
+    volumes:
+      - ./src:/home/jovyan/work/src
+      - ./data:/home/jovyan/work/data
+      - ./mlruns:/home/jovyan/work/mlruns
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+    depends_on:
+      - kafka
+
+  kafka-producer:
+    build: ./spark-env
+    volumes:
+      - ./src:/home/jovyan/work/src
+      - ./data:/home/jovyan/work/data
+    depends_on:
+      - kafka
+    restart: on-failure
+    command: python /home/jovyan/work/src/ingestion/kafka_producer.py
+
+  mlflow-server:
+    image: python:3.9-slim
+    ports:
+      - "5001:5001" # MLflow Arayüzü
+    volumes:
+      - ./mlruns:/mlruns
+    # Konteyner başlarken mlflow kurup sunucuyu başlatır
+    command: >
+      bash -c "pip install mlflow &&
+               mlflow server --host 0.0.0.0 --port 5001 --backend-store-uri sqlite:///mlruns/mlflow.db --default-artifact-root /mlruns"
