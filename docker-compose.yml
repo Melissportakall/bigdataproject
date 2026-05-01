@@ -46,6 +46,16 @@ services:
     depends_on:
       - kafka
 
+  kafka-producer:
+    build: ./spark-env
+    volumes:
+      - ./src:/home/jovyan/work/src
+      - ./data:/home/jovyan/work/data
+    depends_on:
+      - kafka
+    restart: on-failure
+    command: python /home/jovyan/work/src/ingestion/kafka_producer.py
+
   mlflow-server:
     image: python:3.9-slim
     ports:

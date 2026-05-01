@@ -17,7 +17,6 @@ import pandas as pd
 from kafka import KafkaProducer
 from kafka.errors import NoBrokersAvailable
 
-# ── Proje kök dizinini Python path'ine ekle ─────────────
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 from src.config.settings import (
@@ -55,6 +54,12 @@ def load_parquet(path: str) -> pd.DataFrame:
     """Parquet dosyasını okuyup datetime kolonlarını string'e çevirir."""
     print(f"Parquet okunuyor: {path}")
     df = pd.read_parquet(path, columns=TAXI_COLUMNS)
+
+    # 22 Ocak 2024 ve sonrasını filtrele
+    cutoff = pd.Timestamp("2024-01-22")
+    before = len(df)
+    df = df[df["tpep_pickup_datetime"] >= cutoff].reset_index(drop=True)
+    print(f"  → Filtre: pickup >= {cutoff.date()} | {before:,} → {len(df):,} satır")
 
     # Datetime → ISO-8601 string (JSON serializable)
     for col in DATETIME_COLUMNS:
