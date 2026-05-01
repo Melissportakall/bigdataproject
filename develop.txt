@@ -1,0 +1,7 @@
+Kafka UI	localhost:8080	Topic'leri, mesajları, consumer'ları görsel izle
+
+Jupyter Lab	localhost:8888	Spark notebook'ları
+
+MLflow	localhost:5001	Model deneyleri
+
+Spark UI	localhost:4040	Spark job'ları (Spark çalışınca aktif)
