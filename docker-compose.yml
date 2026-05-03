@@ -38,7 +38,7 @@ services:
       - "8888:8888" # Jupyter Notebook arayüzü
       - "4040:4040" # Spark arayüzü (İşlemleri takip etmek için)
     volumes:
-      - ./src:/home/jovyan/work/src
+      - ./notebooks:/home/jovyan/work/notebooks
       - ./data:/home/jovyan/work/data
       - ./mlruns:/home/jovyan/work/mlruns
     environment:
@@ -47,14 +47,12 @@ services:
       - kafka
 
   kafka-producer:
-    build: ./spark-env
+    build: ./kafka-producer
     volumes:
-      - ./src:/home/jovyan/work/src
-      - ./data:/home/jovyan/work/data
+      - ./data:/app/data
     depends_on:
       - kafka
     restart: on-failure
-    command: python /home/jovyan/work/src/ingestion/kafka_producer.py
 
   mlflow-server:
     image: python:3.9-slim
