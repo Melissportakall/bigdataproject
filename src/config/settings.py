@@ -23,6 +23,9 @@ PARQUET_FILE = os.path.join(DATA_DIR, "yellow_tripdata_2024-01.parquet")
 DELTA_OUTPUT_PATH = os.path.join(DATA_DIR, "delta", "taxi_trips")
 DELTA_CHECKPOINT_PATH = os.path.join(DATA_DIR, "delta", "_checkpoints")
 
+FEATURES_OUTPUT_PATH = os.path.join(DATA_DIR, "delta", "features")
+FEATURES_CHECKPOINT_PATH = os.path.join(DATA_DIR, "_checkpoints_features")
+
 # ── MLflow ───────────────────────────────────────────────
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow-server:5001")
 MLFLOW_EXPERIMENT_NAME = "nyc-taxi-models"

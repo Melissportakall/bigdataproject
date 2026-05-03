@@ -22,11 +22,13 @@ from pyspark.sql.types import (
 )
 
 # ── Spark Başlat ──────────────────────────────────────────
+# NOT: Spark 3.5.0 imajı ile Delta 2.4.0 uyum sorunu (TypeError: 'JavaPackage' object is not callable) 
+# çıkardığı için versiyonlar güncellendi. Eski sürümler: delta-core:2.4.0 ve kafka:3.4.0 idi.
 spark = SparkSession.builder \
     .appName(SPARK_APP_NAME) \
     .config("spark.jars.packages",
-            "io.delta:delta-core_2.12:2.4.0,"
-            "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0") \
+            "io.delta:delta-spark_2.12:3.1.0,"
+            "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0") \
     .config("spark.sql.extensions",
             "io.delta.sql.DeltaSparkSessionExtension") \
     .config("spark.sql.catalog.spark_catalog",
