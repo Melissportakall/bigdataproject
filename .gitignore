@@ -1,6 +1,5 @@
 # Veri ve Log Klasörleri (ASLA PUSHLANMAMALI)
 data/
-mlruns/
 _checkpoints/
 _checkpoints_features/
 
