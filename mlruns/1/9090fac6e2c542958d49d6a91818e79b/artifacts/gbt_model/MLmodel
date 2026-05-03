@@ -14,8 +14,8 @@ flavors:
     pyspark_version: 3.5.0
 mlflow_version: 3.11.1
 model_id: null
-model_size_bytes: 71678
-model_uuid: 7f45e6fde845462e94bb6cc62f5c3c5c
+model_size_bytes: 71625
+model_uuid: 3b4cd4c6dfa84bc4962d446aba0ed77b
 prompts: null
-run_id: ab26a4c037a5410e87c181bff12e44a2
-utc_time_created: '2026-05-03 16:41:02.341176'
+run_id: 9090fac6e2c542958d49d6a91818e79b
+utc_time_created: '2026-05-03 19:05:50.067432'

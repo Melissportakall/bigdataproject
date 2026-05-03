@@ -41,7 +41,7 @@ services:
       - ./notebooks:/home/jovyan/work/notebooks
       - ./data:/home/jovyan/work/data
       - ./mlruns:/home/jovyan/work/mlruns
-      - ./notebooks:/home/jovyan/work/notebooks
+      - ./mlruns:/mlruns
     environment:
       JUPYTER_ENABLE_LAB: "yes"
     depends_on:
