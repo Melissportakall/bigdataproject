@@ -1,11 +1,11 @@
 """
-kafka_producer.py - NYC Taxi verisini Kafka'ya stream eder.
+producer.py - NYC Taxi verisini Kafka'ya stream eder.
 
 Parquet dosyasını okur ve saniyede ~200 kayıt olarak
 'taxi_trips' topic'ine JSON formatında gönderir.
 
-Kullanım (spark-workspace container içinde):
-    python src/ingestion/kafka_producer.py
+Docker Compose ile otomatik çalışır:
+    docker-compose up kafka-producer
 """
 
 import json
@@ -17,16 +17,41 @@ import pandas as pd
 from kafka import KafkaProducer
 from kafka.errors import NoBrokersAvailable
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+# ── Sabitler ──────────────────────────────────────────────
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:29092")
+KAFKA_TOPIC = "taxi_trips"
+PRODUCER_BATCH_SIZE = 200          # saniyede gönderilecek kayıt sayısı
+PRODUCER_SEND_INTERVAL = 1.0      # saniye cinsinden gönderim aralığı
+PARQUET_FILE = "/app/data/yellow_tripdata_2024-01.parquet"
 
-from src.config.settings import (
-    KAFKA_BOOTSTRAP_SERVERS,
-    KAFKA_TOPIC,
-    PARQUET_FILE,
-    PRODUCER_BATCH_SIZE,
-    PRODUCER_SEND_INTERVAL,
-)
-from src.config.schema import TAXI_COLUMNS, DATETIME_COLUMNS
+# Kafka'ya gönderilecek kolonlar
+TAXI_COLUMNS = [
+    "VendorID",
+    "tpep_pickup_datetime",
+    "tpep_dropoff_datetime",
+    "passenger_count",
+    "trip_distance",
+    "RatecodeID",
+    "store_and_fwd_flag",
+    "PULocationID",
+    "DOLocationID",
+    "payment_type",
+    "fare_amount",
+    "extra",
+    "mta_tax",
+    "tip_amount",
+    "tolls_amount",
+    "improvement_surcharge",
+    "total_amount",
+    "congestion_surcharge",
+    "Airport_fee",
+]
+
+# Datetime kolonları (JSON'a çevirirken ISO-8601 string yapılacak)
+DATETIME_COLUMNS = [
+    "tpep_pickup_datetime",
+    "tpep_dropoff_datetime",
+]
 
 
 def create_producer(retries: int = 5, wait: int = 5) -> KafkaProducer:
