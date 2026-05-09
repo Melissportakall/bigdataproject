@@ -65,3 +65,14 @@ services:
     command: >
       bash -c "pip install mlflow &&
                mlflow server --host 0.0.0.0 --port 5001 --backend-store-uri sqlite:///mlruns/mlflow.db --default-artifact-root /mlruns"
+
+  streamlit-dashboard:
+    build: ./dashboard
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./dashboard:/app
+      - ./data:/app/data
+      - ./mlruns:/mlruns
+    depends_on:
+      - mlflow-server
