@@ -3,12 +3,53 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
+import mlflow
 
 # Sayfa Ayarları
 st.set_page_config(page_title="NYC Taxi Trip Dashboard", page_icon="🚕", layout="wide")
 
 st.title("🚕 NYC Taxi Trip Süre/Ücret Tahmini Dashboard")
 st.markdown("Büyük Veri Analizine Giriş Dönem Projesi - Adım 7")
+
+# --- MLflow Ayarları ---
+mlflow.set_tracking_uri("http://mlflow-server:5001")
+
+@st.cache_data(ttl=600) # 10 dakikada bir yenile
+def fetch_mlflow_metrics():
+    try:
+        experiment = mlflow.get_experiment_by_name("Taxi_Fare_Prediction")
+        if not experiment:
+            return None
+        
+        runs = mlflow.search_runs(experiment_ids=[experiment.experiment_id])
+        if runs.empty:
+            return None
+        
+        # Latest runs for each model
+        model_names = {
+            "Linear_Regression_Final": "Linear Regression",
+            "Decision_Tree_Final": "Decision Tree",
+            "RF_Regressor_Final": "Random Forest",
+            "GBT_Regressor_Final": "GBT",
+            "GLR_Final": "GLR"
+        }
+        
+        extracted_data = []
+        for run_name, display_name in model_names.items():
+            # Find the most recent run with this name
+            model_run = runs[runs['tags.mlflow.runName'] == run_name].sort_values(by='start_time', ascending=False)
+            if not model_run.empty:
+                extracted_data.append({
+                    'Model': display_name,
+                    'RMSE': model_run.iloc[0]['metrics.rmse'],
+                    'MAE': model_run.iloc[0]['metrics.mae'],
+                    'R2': model_run.iloc[0]['metrics.r2']
+                })
+        
+        return pd.DataFrame(extracted_data) if extracted_data else None
+    except Exception as e:
+        st.sidebar.error(f"MLflow Bağlantı Hatası: {e}")
+        return None
 
 # --- Veri Yükleme ---
 @st.cache_data
@@ -44,10 +85,17 @@ if not df.empty:
     with col2:
         st.metric(label="Ortalama Mesafe", value=f"{df['trip_distance'].mean():.2f} mil")
     with col3:
-        # En iyi model sonucunu CSV'den alalım
+        # En iyi model sonucunu CSV'den veya MLflow'dan alalım
+        best_r2_val = None
         if model_metrics is not None:
-            best_r2 = model_metrics['R2'].max() * 100
-            st.metric(label="En İyi Model R² Skoru", value=f"%{best_r2:.2f}")
+            best_r2_val = model_metrics['R2'].max() * 100
+        else:
+            mlflow_df_kpi = fetch_mlflow_metrics()
+            if mlflow_df_kpi is not None:
+                best_r2_val = mlflow_df_kpi['R2'].max() * 100
+        
+        if best_r2_val is not None:
+            st.metric(label="En İyi Model R² Skoru", value=f"%{best_r2_val:.2f}")
         else:
             st.metric(label="En İyi Model R² Skoru", value="%90.20")
 else:
@@ -66,20 +114,31 @@ if model_metrics is not None:
                         color_discrete_sequence=['tomato', 'steelblue', 'seagreen'])
     st.plotly_chart(fig_models, use_container_width=True)
 else:
-    models = ["Linear Regression", "Decision Tree", "Random Forest", "GBT", "GLR"]
-    rmse_values = [7.263, 7.518, 6.978, 7.132, 7.263]
-    mae_values  = [3.393, 3.450, 2.912, 3.007, 3.393]
-    r2_values   = [0.894, 0.887, 0.902, 0.898, 0.894]
+    # MLflow'dan verileri çekmeyi deneyelim
+    mlflow_df = fetch_mlflow_metrics()
     
-    metrics_df = pd.DataFrame({
-        'Model': models * 3,
-        'Metric': ['RMSE']*5 + ['MAE']*5 + ['R2']*5,
-        'Value': rmse_values + mae_values + r2_values
-    })
-    fig_models = px.bar(metrics_df, x='Model', y='Value', color='Metric', barmode='group',
-                        title='Modellerin RMSE, MAE ve R² Kıyaslaması',
-                        color_discrete_sequence=['tomato', 'steelblue', 'seagreen'])
-    st.plotly_chart(fig_models, use_container_width=True)
+    if mlflow_df is not None:
+        plot_df = mlflow_df.melt(id_vars='Model', var_name='Metric', value_name='Value')
+        fig_models = px.bar(plot_df, x='Model', y='Value', color='Metric', barmode='group',
+                            title='Modellerin MLflow Üzerindeki Performans Kıyaslaması (RMSE, MAE, R²)',
+                            color_discrete_sequence=['tomato', 'steelblue', 'seagreen'])
+        st.plotly_chart(fig_models, use_container_width=True)
+    else:
+        # MLflow'da da yoksa fallback olarak statik veriler
+        models = ["Linear Regression", "Decision Tree", "Random Forest", "GBT", "GLR"]
+        rmse_values = [7.263, 7.518, 6.978, 7.132, 7.263]
+        mae_values  = [3.393, 3.450, 2.912, 3.007, 3.393]
+        r2_values   = [0.894, 0.887, 0.902, 0.898, 0.894]
+        
+        metrics_df = pd.DataFrame({
+            'Model': models * 3,
+            'Metric': ['RMSE']*5 + ['MAE']*5 + ['R2']*5,
+            'Value': rmse_values + mae_values + r2_values
+        })
+        fig_models = px.bar(metrics_df, x='Model', y='Value', color='Metric', barmode='group',
+                            title='Modellerin RMSE, MAE ve R² Kıyaslaması (Statik Veri)',
+                            color_discrete_sequence=['tomato', 'steelblue', 'seagreen'])
+        st.plotly_chart(fig_models, use_container_width=True)
 
 st.markdown("---")
 
