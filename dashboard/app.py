@@ -63,15 +63,28 @@ def load_data():
         df = pd.DataFrame(columns=columns_to_read)
     return df
 
-@st.cache_data
 def load_metrics():
+    model_metrics, stream_metrics, feat_importance = None, None, None
+    
+    # Her dosyayı bağımsız okuyalım ki biri eksikse diğeri çalışmaya devam etsin
     try:
         model_metrics = pd.read_csv('/app/data/model_metrics.csv')
-        stream_metrics = pd.read_csv('/app/data/stream_metrics.csv')
-        feat_importance = pd.read_csv('/app/data/feature_importance.csv')
-        return model_metrics, stream_metrics, feat_importance
     except:
-        return None, None, None
+        pass
+        
+    try:
+        stream_metrics = pd.read_csv('/app/data/stream_metrics.csv')
+        if stream_metrics is not None and 'Stream R2' in stream_metrics.columns:
+            stream_metrics = stream_metrics.rename(columns={'Stream R2': 'R2', 'Stream RMSE': 'RMSE', 'Stream MAE': 'MAE'})
+    except:
+        pass
+        
+    try:
+        feat_importance = pd.read_csv('/app/data/feature_importance.csv')
+    except:
+        pass
+            
+    return model_metrics, stream_metrics, feat_importance
 
 df = load_data()
 model_metrics, stream_metrics, feat_importance = load_metrics()
@@ -104,39 +117,28 @@ else:
 st.markdown("---")
 
 # --- 1. Model Performans Karşılaştırması ---
-st.markdown("### 1. Model Performans Karşılaştırması (Eğitim Sonuçları)")
+st.markdown("### 1. Model Performans Karşılaştırması")
 
+# 1.1. Notebook Çıktısı (Kapsamlı Görsel)
+try:
+    st.image('/app/data/model_comparison.png', caption='Modellerin Performans Kıyaslaması (Statik Görsel)', use_container_width=True)
+except:
+    st.info("Kıyaslama görseli bulunamadı.")
+
+st.markdown("#### 🔍 İnteraktif Metrik Analizi")
+# 1.2. İnteraktif Grafik (CSV veya MLflow)
 if model_metrics is not None:
-    # CSV formatını dashboard formatına dönüştürelim
     plot_df = model_metrics.melt(id_vars='Model', var_name='Metric', value_name='Value')
     fig_models = px.bar(plot_df, x='Model', y='Value', color='Metric', barmode='group',
-                        title='Modellerin Eğitim Metrikleri Kıyaslaması',
+                        title='Modellerin Metrik Kıyaslaması (İnteraktif)',
                         color_discrete_sequence=['tomato', 'steelblue', 'seagreen'])
     st.plotly_chart(fig_models, use_container_width=True)
 else:
-    # MLflow'dan verileri çekmeyi deneyelim
     mlflow_df = fetch_mlflow_metrics()
-    
     if mlflow_df is not None:
         plot_df = mlflow_df.melt(id_vars='Model', var_name='Metric', value_name='Value')
         fig_models = px.bar(plot_df, x='Model', y='Value', color='Metric', barmode='group',
-                            title='Modellerin MLflow Üzerindeki Performans Kıyaslaması (RMSE, MAE, R²)',
-                            color_discrete_sequence=['tomato', 'steelblue', 'seagreen'])
-        st.plotly_chart(fig_models, use_container_width=True)
-    else:
-        # MLflow'da da yoksa fallback olarak statik veriler
-        models = ["Linear Regression", "Decision Tree", "Random Forest", "GBT", "GLR"]
-        rmse_values = [7.263, 7.518, 6.978, 7.132, 7.263]
-        mae_values  = [3.393, 3.450, 2.912, 3.007, 3.393]
-        r2_values   = [0.894, 0.887, 0.902, 0.898, 0.894]
-        
-        metrics_df = pd.DataFrame({
-            'Model': models * 3,
-            'Metric': ['RMSE']*5 + ['MAE']*5 + ['R2']*5,
-            'Value': rmse_values + mae_values + r2_values
-        })
-        fig_models = px.bar(metrics_df, x='Model', y='Value', color='Metric', barmode='group',
-                            title='Modellerin RMSE, MAE ve R² Kıyaslaması (Statik Veri)',
+                            title='Modellerin MLflow Üzerindeki Performans Kıyaslaması (İnteraktif)',
                             color_discrete_sequence=['tomato', 'steelblue', 'seagreen'])
         st.plotly_chart(fig_models, use_container_width=True)
 
@@ -148,12 +150,6 @@ if stream_metrics is not None:
     st.write("**📊 Streaming Test Metrikleri (Gerçek Zamanlı Performans)**")
     # Tabloyu tam genişlikte göstererek sıkışıklığı gideriyoruz
     st.dataframe(stream_metrics.style.highlight_max(subset=['R2'], color='lightgreen'), use_container_width=True)
-    
-    st.markdown("#### 📈 Performans Karşılaştırması")
-    try:
-        st.image('/app/data/model_comparison.png', caption='Modellerin Streaming Verisi Üzerindeki Performans Kıyaslaması', use_container_width=True)
-    except:
-        st.info("Karşılaştırma grafiği bulunamadı.")
             
     st.markdown("#### 🔍 Streaming Tahmin Analizi (Örnek Model)")
     col_s3, col_s4 = st.columns(2)
