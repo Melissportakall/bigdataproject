@@ -286,10 +286,3 @@ docker-compose down
 ```
 *(To clear volumes and checkpoints completely: `docker-compose down -v`)*
 
----
-
-## 👥 Authors & Academic Attribution
-- **Author:** Melis Portakal
-- **Course:** Introduction to Big Data Analytics (Büyük Veri Analizine Giriş)
-- **Academic Advisor:** Dr. Ayşe Gül Eker
-- **Term:** 2025–2026 Spring Semester
