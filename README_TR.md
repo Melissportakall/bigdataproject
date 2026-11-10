@@ -284,9 +284,3 @@ docker-compose down
 *(Tüm volume ve Delta Lake verilerini sıfırlamak için: `docker-compose down -v`)*
 
 ---
-
-## 👥 Akademik Bilgiler
-- **Proje Sahibi:** Melis Portakal
-- **Ders:** Büyük Veri Analizine Giriş Dönem Projesi
-- **Danışman:** Dr. Ayşe Gül Eker
-- **Dönem:** 2025–2026 Bahar Dönemi
